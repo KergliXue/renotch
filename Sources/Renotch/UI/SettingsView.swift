@@ -313,8 +313,28 @@ struct SettingsView: View {
             SettingCard(title: "显示器与时间", icon: "display", iconColor: .purple) {
                 VStack(spacing: 0) {
                     SettingRow(
+                        title: "显示器模式",
+                        subtitle: model.settings.followForegroundWindow == true
+                            ? "切换前台窗口或将窗口移到另一块屏幕时，刘海自动跟随"
+                            : "刘海保持在所选屏幕，不随前台窗口变化"
+                    ) {
+                        Picker("显示器模式", selection: Binding(
+                            get: { model.settings.followForegroundWindow == true },
+                            set: { model.settings.followForegroundWindow = $0 }
+                        )) {
+                            Text("固定到指定显示器").tag(false)
+                            Text("跟随前台窗口").tag(true)
+                        }
+                        .labelsHidden()
+                        .pickerStyle(.menu)
+                        .frame(width: 170)
+                    }
+
+                    Divider().opacity(0.12).padding(.vertical, 12)
+
+                    SettingRow(
                         title: "目标显示器",
-                        subtitle: "选择用于显示 Re:notch 的屏幕"
+                        subtitle: model.settings.followForegroundWindow == true ? "切回固定模式时使用此屏幕" : "选择用于显示 Re:notch 的屏幕"
                     ) {
                         Picker("", selection: $model.settings.targetDisplayID) {
                             Text("主显示器").tag(nil as UInt32?)
@@ -324,6 +344,7 @@ struct SettingsView: View {
                         }
                         .pickerStyle(.menu)
                         .frame(width: 160)
+                        .disabled(model.settings.followForegroundWindow == true)
                     }
 
                     Divider().opacity(0.12).padding(.vertical, 12)

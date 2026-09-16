@@ -69,6 +69,7 @@ final class NotchWindowController: NSWindowController {
     }
 
     func applyConfiguration(animated: Bool) {
+        screenManager.configure(followsForeground: model.settings.followForegroundWindow == true)
         guard let panel = window as? NotchPanel,
               let screen = screenManager.screen(for: model.settings.targetDisplayID) else { return }
 

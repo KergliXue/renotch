@@ -457,6 +457,7 @@ struct SmokeTests {
         persisted.notchAppearance = .liquidGlass
         persisted.glassBlurRadius = 24
         persisted.compactContent = .servers
+        persisted.followForegroundWindow = true
         persisted.codexShowUsage = false
         persisted.compactCornerRadius = 24
         persisted.compactContentBottomPadding = 6
@@ -466,6 +467,7 @@ struct SmokeTests {
         expect(store.load().resolvedAppearance == .liquidGlass, "appearance persistence")
         expect(store.load().resolvedGlassBlurRadius == 24, "glass blur persistence")
         expect(store.load().resolvedCompactContent == .servers, "compact content persistence")
+        expect(store.load().followForegroundWindow == true, "foreground display mode persistence")
         expect(store.load().codexShowUsage == false, "usage visibility persistence")
         expect(store.load().resolvedCompactCornerRadius == 24, "compact corner radius persistence")
         expect(store.load().resolvedCompactContentLeadingPadding == 48, "compact content leading padding persistence")
@@ -479,6 +481,7 @@ struct SmokeTests {
         legacyJSON.removeValue(forKey: "codexEnabled")
         legacyJSON.removeValue(forKey: "codexShowQuestions")
         legacyJSON.removeValue(forKey: "codexShowUsage")
+        legacyJSON.removeValue(forKey: "followForegroundWindow")
         legacyJSON.removeValue(forKey: "codexCompletionSeconds")
         legacyJSON.removeValue(forKey: "glassBlurRadius")
         legacyJSON.removeValue(forKey: "compactContent")
@@ -498,6 +501,7 @@ struct SmokeTests {
         expect(settingsWithoutAppearance.resolvedAppearance == .black, "legacy appearance default")
         expect(settingsWithoutAppearance.codexEnabled != false, "Codex enabled for legacy settings")
         expect(settingsWithoutAppearance.codexShowUsage != false, "usage enabled for legacy settings")
+        expect(settingsWithoutAppearance.followForegroundWindow != true, "legacy display mode stays fixed")
         expect((settingsWithoutAppearance.codexCompletionSeconds ?? 120) == 120, "Codex legacy retention fallback")
         expect(settingsWithoutAppearance.resolvedGlassBlurRadius == 16, "legacy glass blur default")
         expect(settingsWithoutAppearance.resolvedCompactContent == .music, "legacy compact content default")

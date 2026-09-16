@@ -27,3 +27,4 @@ swiftc \
 
 "$SCRIPT_DIR/test-appmodel.sh"
 "$SCRIPT_DIR/test-codex.sh"
+"$SCRIPT_DIR/test-usage-display.sh"

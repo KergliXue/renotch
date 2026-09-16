@@ -124,6 +124,7 @@ struct NotchSettings: Codable, Equatable, Sendable {
     var isEnabled = true
     var launchAtLogin = false
     var targetDisplayID: UInt32?
+    var followForegroundWindow: Bool? = false
     var expandOnHover = true
     var expandOnClick = true
     var showOnFullscreen = true
