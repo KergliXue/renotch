@@ -17,6 +17,7 @@ final class NotchWindowController: NSWindowController {
 
         let hostingView = NotchHostingView(
             rootView: NotchView()
+                .environment(\.locale, Locale(identifier: "zh_CN"))
                 .environmentObject(model)
         )
         hostingView.sizingOptions = []

@@ -16,8 +16,8 @@ enum NotchAppearance: String, Codable, CaseIterable, Identifiable, Sendable {
 
     var title: String {
         switch self {
-        case .black: return "Black"
-        case .liquidGlass: return "Liquid Glass"
+        case .black: return "纯黑"
+        case .liquidGlass: return "液态玻璃"
         }
     }
 }
@@ -77,17 +77,17 @@ enum HeaderNavigationStyle: String, Codable, CaseIterable, Identifiable, Sendabl
 
     var title: String {
         switch self {
-        case .standard: return "Top Bar"
-        case .belowNotch: return "Below Notch (Safe Area)"
-        case .bottomDock: return "Bottom Dock"
+        case .standard: return "顶部导航"
+        case .belowNotch: return "刘海下方（安全区域）"
+        case .bottomDock: return "底部导航"
         }
     }
 
     var subtitle: String {
         switch self {
-        case .standard: return "Header placed at top edge"
-        case .belowNotch: return "Pushes header below physical notch clearance"
-        case .bottomDock: return "Tabs in floating dock at bottom"
+        case .standard: return "将导航栏放在顶部"
+        case .belowNotch: return "将导航栏放在实体刘海下方"
+        case .bottomDock: return "在底部浮动栏中显示导航标签"
         }
     }
 }
@@ -410,8 +410,8 @@ enum PomodoroMode: String, Codable, CaseIterable, Identifiable, Sendable {
 
     var title: String {
         switch self {
-        case .focus: return "Focus"
-        case .breakTime: return "Break"
+        case .focus: return "专注"
+        case .breakTime: return "休息"
         }
     }
 

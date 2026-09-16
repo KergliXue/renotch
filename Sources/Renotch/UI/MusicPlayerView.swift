@@ -48,7 +48,7 @@ struct MusicPlayerView: View {
                     Circle()
                         .fill(music.isPlaying ? Color.musicAccent : Color.white.opacity(0.28))
                         .frame(width: 5, height: 5)
-                    Text(music.isPlaying ? "Playing" : "Paused")
+                    Text(music.isPlaying ? "正在播放" : "已暂停")
                 }
                 .font(.system(size: 8.5, weight: .semibold))
                 .foregroundStyle(.secondary)
@@ -82,7 +82,7 @@ struct MusicPlayerView: View {
                 HStack(spacing: 4) {
                     PlayerControlButton(
                         icon: "shuffle",
-                        title: music.shuffleEnabled ? "Shuffle on" : "Shuffle off",
+                        title: music.shuffleEnabled ? "已开启随机播放" : "已关闭随机播放",
                         size: 27,
                         isActive: music.shuffleEnabled,
                         activeColor: sourceAccent,
@@ -91,7 +91,7 @@ struct MusicPlayerView: View {
 
                     PlayerControlButton(
                         icon: "backward.fill",
-                        title: "Previous",
+                        title: "上一首",
                         size: 27,
                         action: music.previousTrack
                     )
@@ -109,7 +109,7 @@ struct MusicPlayerView: View {
 
                     PlayerControlButton(
                         icon: "forward.fill",
-                        title: "Next",
+                        title: "下一首",
                         size: 27,
                         action: music.nextTrack
                     )
@@ -159,13 +159,13 @@ struct MusicPlayerView: View {
         VStack(alignment: .leading, spacing: 7) {
             Text(
                 music.automationDenied
-                    ? "\(music.activeSource.displayName) access is off"
-                    : "Nothing playing"
+                    ? "尚未授权访问 \(music.activeSource.displayName)"
+                    : "暂无播放内容"
             )
                 .font(.system(size: 14, weight: .semibold))
             Text(
                 music.automationDenied
-                    ? "Allow Re:notch to control \(music.activeSource.displayName) in System Settings → Privacy & Security → Automation."
+                    ? "请在“系统设置 → 隐私与安全性 → 自动化”中，允许 Re:notch 控制 \(music.activeSource.displayName)。"
                     : "Play a song in Apple Music or Spotify and its artwork and controls will appear here."
             )
             .font(.system(size: 10))
@@ -221,9 +221,9 @@ struct MusicPlayerView: View {
 
     private var repeatHelp: String {
         switch music.repeatMode {
-        case .off: return "Repeat off"
-        case .all: return "Repeat all"
-        case .one: return "Repeat one"
+        case .off: return "已关闭循环播放"
+        case .all: return "列表循环"
+        case .one: return "单曲循环"
         }
     }
 
@@ -267,7 +267,7 @@ struct AppleMusicBadge: View {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .stroke(Color.white.opacity(0.12), lineWidth: 0.5)
             )
-            .accessibilityLabel("Playing from Apple Music")
+            .accessibilityLabel("正在播放 Apple Music")
     }
 }
 
@@ -312,7 +312,7 @@ struct AudioWaveform: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .accessibilityLabel(isPlaying ? "Music playing" : "Music paused")
+        .accessibilityLabel(isPlaying ? "音乐播放中" : "音乐已暂停")
     }
 
     private func barHeight(_ index: Int, at date: Date) -> CGFloat {

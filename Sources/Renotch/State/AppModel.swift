@@ -183,7 +183,7 @@ final class AppModel: ObservableObject {
         }
     }
 
-    func triggerFaceIDGlance(title: String = "Face ID", subtitle: String = "Authenticated", duration: TimeInterval = 2.2) {
+    func triggerFaceIDGlance(title: String = "面容认证", subtitle: String = "认证成功", duration: TimeInterval = 2.2) {
         authGlance = AuthGlance(title: title, subtitle: subtitle, isSuccess: true)
         NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .default)
         onPanelConfigurationChanged?()
@@ -299,7 +299,7 @@ final class AppModel: ObservableObject {
     func showShelf(pin: Bool = false) {
         let removedCount = shelf.removeMissingFiles()
         if removedCount > 0 {
-            showMessage(removedCount == 1 ? "Removed 1 missing file" : "Removed \(removedCount) missing files")
+            showMessage(removedCount == 1 ? "已移除 1 个不存在的文件" : "已移除 \(removedCount) 个不存在的文件")
         }
         guard !shelf.items.isEmpty else {
             collapse(force: true)
@@ -347,9 +347,9 @@ final class AppModel: ObservableObject {
         let result = shelf.add(urls)
         guard result.addedCount > 0 else {
             if result.capacityRejectedCount > 0 || shelf.items.count == shelf.maxItems {
-                showMessage("Shelf is full")
+                showMessage("暂存区已满")
             } else {
-                showMessage("This item cannot be added")
+                showMessage("无法添加此项目")
             }
             restoreModeAfterFileDrop()
             return false
@@ -362,9 +362,9 @@ final class AppModel: ObservableObject {
         mode = .success
         onPanelConfigurationChanged?()
         if result.capacityRejectedCount > 0 {
-            showMessage("Shelf is full")
+            showMessage("暂存区已满")
         } else {
-            showMessage(result.addedCount == 1 ? "Added to shelf" : "Added \(result.addedCount) files")
+            showMessage(result.addedCount == 1 ? "已添加到暂存区" : "已添加 \(result.addedCount) 个文件")
         }
         NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
         scheduleSuccessDismissal()
@@ -394,7 +394,7 @@ final class AppModel: ObservableObject {
     func removeMissingShelfFiles() {
         let removedCount = shelf.removeMissingFiles()
         guard removedCount > 0 else { return }
-        showMessage(removedCount == 1 ? "Removed 1 missing file" : "Removed \(removedCount) missing files")
+        showMessage(removedCount == 1 ? "已移除 1 个不存在的文件" : "已移除 \(removedCount) 个不存在的文件")
         shelfDidChange()
     }
 
@@ -415,7 +415,7 @@ final class AppModel: ObservableObject {
             notify: settings.timerNotificationsEnabled
         )
         isPinned = false
-        showMessage("Focus started · \(fMin)m (Break \(bMin)m next)")
+        showMessage("已开始专注 · \(fMin) 分钟（接下来休息 \(bMin) 分钟）")
         collapse(force: true)
     }
 
@@ -423,7 +423,7 @@ final class AppModel: ObservableObject {
         let activeMode = mode ?? timer.selectedMode
         timer.start(minutes: minutes, mode: activeMode, notify: settings.timerNotificationsEnabled)
         isPinned = false
-        showMessage("\(activeMode.title) timer started · \(minutes) min")
+        showMessage("已开始\(activeMode.title)计时 · \(minutes) 分钟")
         collapse(force: true)
     }
 
@@ -484,8 +484,8 @@ final class AppModel: ObservableObject {
             )
         }
         transientMessage = isAutoBreak
-            ? "Focus complete · \(breakMin)m Break started"
-            : (completedMode == .focus ? "Focus complete!" : "Break complete!")
+            ? "专注完成 · 已开始 \(breakMin) 分钟休息"
+            : (completedMode == .focus ? "专注完成！" : "休息结束！")
         expand(section: .timer, pin: true, preferSelectedSection: true)
     }
 
@@ -498,7 +498,7 @@ final class AppModel: ObservableObject {
             isApplyingLoginSetting = true
             settings.launchAtLogin = oldValue
             isApplyingLoginSetting = false
-            settingsError = "Launch at login could not be changed: \(error.localizedDescription)"
+            settingsError = "无法更改登录启动设置：\(error.localizedDescription)"
         }
     }
 

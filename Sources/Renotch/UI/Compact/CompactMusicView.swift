@@ -21,7 +21,7 @@ struct CompactMusicView: View {
 
             if showsTrackInfo {
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(message ?? music.track?.title ?? "Music")
+                    Text(message ?? music.track?.title ?? "音乐")
                         .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(message == nil ? .white : Color.notchAccent)
                         .lineLimit(1)
@@ -90,9 +90,9 @@ struct CompactMusicView: View {
         }
         switch music.playbackState {
         case .notRunning: return "Apple Music or Spotify"
-        case .stopped: return "Not playing"
-        case .paused: return "Paused"
-        case .playing: return "Now playing"
+        case .stopped: return "未播放"
+        case .paused: return "已暂停"
+        case .playing: return "正在播放"
         }
     }
 }

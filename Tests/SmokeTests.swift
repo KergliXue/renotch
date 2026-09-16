@@ -42,7 +42,7 @@ struct SmokeTests {
         expect(settings.resolvedCompactContent == .music, "music is the default compact content")
         expect(CompactNotchContent.calendar.section == .calendar, "calendar compact destination")
         expect(CompactNotchContent.todo.section == .todo, "todo compact destination")
-        expect(CompactNotchContent.todo.title == "To-Do List", "todo compact title")
+        expect(CompactNotchContent.todo.title == "待办清单", "todo compact title")
         expect(
             NotchSettings.compactWidthRange == NotchSettings.expandedWidthRange,
             "compact and expanded width ranges match"
@@ -358,9 +358,9 @@ struct SmokeTests {
             completions: [],
             id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
         )
-        expect(codingGlance?.title == "Coding active", "combined coding glance title")
-        expect(codingGlance?.subtitle.contains("1 server") == true, "coding glance includes server count")
-        expect(codingGlance?.subtitle.contains("1 Docker container") == true, "coding glance includes Docker count")
+        expect(codingGlance?.title == "开发任务进行中", "combined coding glance title")
+        expect(codingGlance?.subtitle.contains("1 个服务") == true, "coding glance includes server count")
+        expect(codingGlance?.subtitle.contains("1 个 Docker 容器") == true, "coding glance includes Docker count")
         expect(
             DeveloperActivityGlanceResolver.resolve(
                 previousActivities: [glanceServer, glanceDocker],
