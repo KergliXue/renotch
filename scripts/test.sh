@@ -18,6 +18,7 @@ swiftc \
     Sources/Renotch/Services/ShelfStore.swift \
     Sources/Renotch/Services/TodoStore.swift \
     Sources/Renotch/Services/MusicService.swift \
+    Sources/Renotch/Services/QQMusicBridge.swift \
     Sources/Renotch/Services/BrowserActivityService.swift \
     Sources/Renotch/Services/DeveloperActivityService.swift \
     Tests/SmokeTests.swift \
@@ -28,3 +29,4 @@ swiftc \
 "$SCRIPT_DIR/test-appmodel.sh"
 "$SCRIPT_DIR/test-codex.sh"
 "$SCRIPT_DIR/test-usage-display.sh"
+"$SCRIPT_DIR/test-qq-music.sh"

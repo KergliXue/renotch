@@ -102,7 +102,7 @@ struct DashboardView: View {
                         .foregroundStyle(Color.white.opacity(0.95))
                         .lineLimit(1)
 
-                    Text(music.track?.artist ?? "Apple Music / Spotify")
+                    Text(music.track?.artist ?? "QQ 音乐 / Apple Music / Spotify")
                         .font(.system(size: 9.5, weight: .regular))
                         .foregroundStyle(Color.white.opacity(0.6))
                         .lineLimit(1)
@@ -415,7 +415,7 @@ struct DashboardView: View {
                         .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(Color.white.opacity(0.9))
 
-                    Text(hasFiles ? "\(shelf.items.count) item\(shelf.items.count == 1 ? "" : "s") ready" : "Drop files to pin")
+                    Text(hasFiles ? "已暂存 \(shelf.items.count) 个文件" : "拖入文件即可暂存")
                         .font(.system(size: 9, weight: .regular))
                         .foregroundStyle(hasFiles ? Color(red: 0.85, green: 0.75, blue: 1.0) : Color.notchMuted)
                         .lineLimit(1)

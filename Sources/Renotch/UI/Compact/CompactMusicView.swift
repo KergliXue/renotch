@@ -89,7 +89,7 @@ struct CompactMusicView: View {
             return "\(artist) · \(music.activeSource.displayName)"
         }
         switch music.playbackState {
-        case .notRunning: return "Apple Music or Spotify"
+        case .notRunning: return "QQ 音乐 / Apple Music / Spotify"
         case .stopped: return "未播放"
         case .paused: return "已暂停"
         case .playing: return "正在播放"
