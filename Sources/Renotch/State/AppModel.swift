@@ -7,6 +7,8 @@ final class AppModel: ObservableObject {
     @Published var settings: NotchSettings {
         didSet {
             settingsStore.save(settings)
+            codex.configure(enabled: settings.codexEnabled != false, retention: settings.codexCompletionSeconds ?? 120)
+            codexUsage.configure(enabled: settings.codexEnabled != false && settings.codexShowUsage != false)
             applyLaunchAtLoginIfNeeded(oldValue: oldValue.launchAtLogin)
             if mode == .compact {
                 selectedSection = compactDestination
@@ -36,6 +38,8 @@ final class AppModel: ObservableObject {
     let calendar: AppleCalendarService
     let shelf: ShelfStore
     let todos: TodoStore
+    let codex: CodexActivityService
+    let codexUsage: CodexUsageService
     let activity: DeveloperActivityService
     let focusBlocker: FocusBlockerService
 
@@ -48,6 +52,7 @@ final class AppModel: ObservableObject {
     private var dropExitWorkItem: DispatchWorkItem?
     private var successWorkItem: DispatchWorkItem?
     private var messageWorkItem: DispatchWorkItem?
+    private var codexCancellable: AnyCancellable?
     private var browserActivityCancellable: AnyCancellable?
     private var musicActivityCancellable: AnyCancellable?
     private var timerActivityCancellable: AnyCancellable?
@@ -57,7 +62,7 @@ final class AppModel: ObservableObject {
     private var modeBeforeFocusTakeover: NotchMode = .compact
     private var isApplyingLoginSetting = false
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard, connectCodex: Bool = true) {
         self.defaults = defaults
         settingsStore = SettingsStore(defaults: defaults)
         let loadedSettings = settingsStore.load()
@@ -69,6 +74,8 @@ final class AppModel: ObservableObject {
         shelf = ShelfStore()
         todos = TodoStore(defaults: defaults)
         activity = DeveloperActivityService()
+        codex = CodexActivityService(connect: connectCodex && loadedSettings.codexEnabled != false)
+        codexUsage = CodexUsageService(connect: connectCodex, enabled: loadedSettings.codexEnabled != false && loadedSettings.codexShowUsage != false)
         focusBlocker = FocusBlockerService()
         FocusBlockerOverlayController.shared.blockerService = focusBlocker
 
@@ -104,6 +111,13 @@ final class AppModel: ObservableObject {
                     self?.onPanelConfigurationChanged?()
                 }
             }
+        codex.configure(enabled: loadedSettings.codexEnabled != false, retention: loadedSettings.codexCompletionSeconds ?? 120)
+        codexCancellable = codex.objectWillChange.sink { [weak self] _ in
+            DispatchQueue.main.async {
+                self?.objectWillChange.send()
+                self?.onPanelConfigurationChanged?()
+            }
+        }
         setupPowerManagementObservers()
         activity.setRefreshInterval(isExpanded ? 4.0 : 15.0)
     }
@@ -118,7 +132,8 @@ final class AppModel: ObservableObject {
     }
 
     private var compactDestination: NotchSection {
-        activity.glance == nil ? settings.resolvedCompactContent.section : .activity
+        if codex.shouldPresent { return .codex }
+        return activity.glance == nil ? settings.resolvedCompactContent.section : .activity
     }
 
     var activeMediaSource: AdaptiveMediaSource? {
@@ -139,6 +154,9 @@ final class AppModel: ObservableObject {
                     width: max(settings.compactWidth, 320),
                     height: max(settings.compactHeight, 44)
                 )
+            }
+            if codex.shouldPresent || settings.resolvedCompactContent == .codex {
+                return NSSize(width: max(settings.compactWidth, 430), height: max(settings.compactHeight, 52))
             }
             if browser.activeDownload != nil {
                 return NSSize(
@@ -161,6 +179,10 @@ final class AppModel: ObservableObject {
             return NSSize(width: settings.compactWidth, height: settings.compactHeight)
         case .expanded:
             let notchHeightOffset: CGFloat = settings.isHardwareNotchSafeActive ? 26 : 0
+            if selectedSection == .codex {
+                return NSSize(width: max(settings.expandedWidth, NotchSettings.codexExpandedWidth),
+                              height: max(settings.expandedHeight + notchHeightOffset, NotchSettings.codexExpandedHeight))
+            }
             if isShowingCodingSection {
                 return NSSize(
                     width: max(
@@ -517,11 +539,15 @@ final class AppModel: ObservableObject {
     }
 
     private func pauseServices() {
+        codex.pause()
+        codexUsage.pause()
         music.pause()
         activity.pause()
     }
 
     private func resumeServices() {
+        codex.start()
+        codexUsage.start()
         music.resume()
         activity.resume()
     }

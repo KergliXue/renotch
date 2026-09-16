@@ -42,7 +42,18 @@ struct RenotchApp: App {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     static weak var shared: AppDelegate?
 
-    let model = AppModel()
+    let model: AppModel = {
+        #if DEBUG
+        if CommandLine.arguments.contains("--codex-ui-preview") || Bundle.main.object(forInfoDictionaryKey: "RenotchUIPreview") as? Bool == true {
+            let suite = "com.renotch.codex-ui-preview"
+            UserDefaults.standard.removePersistentDomain(forName: suite)
+            let defaults = UserDefaults(suiteName: suite)!
+            defaults.set(true, forKey: "virtualNotch.didCompleteOnboarding")
+            return AppModel(defaults: defaults, connectCodex: false)
+        }
+        #endif
+        return AppModel()
+    }()
     let screenManager = ScreenManager()
     private var notchController: NotchWindowController?
     private var settingsController: SettingsWindowController?
@@ -54,6 +65,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        #if DEBUG
+        if CommandLine.arguments.contains("--codex-ui-preview") || Bundle.main.object(forInfoDictionaryKey: "RenotchUIPreview") as? Bool == true {
+            model.codex.showPreview()
+            model.expand(section: .codex, pin: true)
+            notchController = NotchWindowController(model: model, screenManager: screenManager)
+            settingsController = SettingsWindowController(model: model, screenManager: screenManager)
+            notchController?.show()
+            return
+        }
+        #endif
         NotificationService.shared.requestAuthorization()
         UpdateChecker.check(interactive: false)
         _ = try? BrowserIntegrationInstaller.installBundledHost()
@@ -123,6 +144,11 @@ private struct MenuBarContent: View {
 
         Divider()
 
+        Button("Codex 任务 · \(model.codex.activeTasks.count) 执行或待处理") {
+            AppDelegate.shared?.showNotch()
+            model.expand(section: .codex, pin: true)
+        }
+
         Button(activityMenuTitle) {
             AppDelegate.shared?.showNotch()
             model.expand(section: .activity, pin: true)
@@ -163,7 +189,7 @@ private struct TimerMenuSection: View {
             Button(timer.isPaused ? "继续\(timer.currentMode.title)" : "暂停\(timer.currentMode.title)") {
                 timer.togglePause()
             }
-            Button("Skip to \(timer.currentMode == .focus ? "Break" : "Focus")") {
+            Button("切换到\(timer.currentMode == .focus ? "休息" : "专注")") {
                 timer.skip()
             }
             Button("取消计时", role: .destructive) { timer.cancel() }

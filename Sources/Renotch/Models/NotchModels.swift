@@ -25,6 +25,7 @@ enum NotchAppearance: String, Codable, CaseIterable, Identifiable, Sendable {
 enum CompactNotchContent: String, Codable, CaseIterable, Identifiable, Sendable {
     case music
     case servers
+    case codex
     case timer
     case calendar
     case shelf
@@ -34,18 +35,20 @@ enum CompactNotchContent: String, Codable, CaseIterable, Identifiable, Sendable 
 
     var title: String {
         switch self {
-        case .music: return "Music"
-        case .servers: return "Servers"
-        case .timer: return "Timer"
-        case .calendar: return "Calendar"
-        case .shelf: return "File Shelf"
-        case .todo: return "To-Do List"
+        case .music: return "音乐"
+        case .codex: return "Codex 任务"
+        case .servers: return "本地服务"
+        case .timer: return "计时器"
+        case .calendar: return "日历"
+        case .shelf: return "文件暂存"
+        case .todo: return "待办清单"
         }
     }
 
     var section: NotchSection {
         switch self {
         case .music: return .music
+        case .codex: return .codex
         case .servers: return .activity
         case .timer: return .timer
         case .calendar: return .calendar
@@ -57,6 +60,7 @@ enum CompactNotchContent: String, Codable, CaseIterable, Identifiable, Sendable 
 
 enum NotchSection: String, CaseIterable, Identifiable, Sendable {
     case dashboard
+    case codex
     case activity
     case welcome
     case music
@@ -109,6 +113,13 @@ struct NotchSettings: Codable, Equatable, Sendable {
     static let expandedMinWidth = 440.0
     static let dragWidth = 500.0
     static let dragHeight = 120.0
+
+    static let codexExpandedWidth = 620.0
+    static let codexExpandedHeight = 460.0
+    var codexEnabled: Bool? = true
+    var codexShowQuestions: Bool? = true
+    var codexShowUsage: Bool? = true
+    var codexCompletionSeconds: Double? = 120
 
     var isEnabled = true
     var launchAtLogin = false

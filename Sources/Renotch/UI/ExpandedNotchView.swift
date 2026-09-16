@@ -56,6 +56,8 @@ struct ExpandedNotchView: View {
                 calendar: model.calendar,
                 navigate: select
             )
+        case .codex:
+            CodexActivityView(service: model.codex)
         case .activity:
             DeveloperActivityView(service: model.activity)
         case .music:
@@ -89,7 +91,12 @@ struct ExpandedNotchView: View {
             if model.settings.resolvedHeaderNavigationStyle != .bottomDock {
                 HStack(spacing: 2) {
                     SectionButton(
-                        title: "Music",
+                        title: "Codex",
+                        icon: "bubble.left.and.bubble.right",
+                        isSelected: isSelected(.codex)
+                    ) { select(.codex) }
+                    SectionButton(
+                        title: "音乐",
                         icon: "waveform",
                         isSelected: isSelected(.music)
                     ) { select(.music) }
@@ -145,6 +152,18 @@ struct ExpandedNotchView: View {
             }
 
             Button {
+                AppDelegate.shared?.openSettings()
+            } label: {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 25, height: 25)
+            }
+            .buttonStyle(.plain)
+            .help("设置")
+            .accessibilityLabel("设置")
+
+            Button {
                 model.collapse(force: true)
             } label: {
                 Image(systemName: "chevron.up")
@@ -161,7 +180,12 @@ struct ExpandedNotchView: View {
     private var bottomDockView: some View {
         HStack(spacing: 3) {
             SectionButton(
-                title: "Music",
+                title: "Codex",
+                icon: "bubble.left.and.bubble.right",
+                isSelected: isSelected(.codex)
+            ) { select(.codex) }
+            SectionButton(
+                title: "音乐",
                 icon: "waveform",
                 isSelected: isSelected(.music)
             ) { select(.music) }

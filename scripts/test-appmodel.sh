@@ -23,6 +23,13 @@ swiftc \
     Sources/Renotch/Services/NotificationService.swift \
     Sources/Renotch/Services/FocusBlockerService.swift \
     Sources/Renotch/Window/FocusBlockerOverlayController.swift \
+    Sources/Renotch/Models/CodexTaskModels.swift \
+    Sources/Renotch/Models/CodexUsageModels.swift \
+    Sources/Renotch/Services/CodexUsageClient.swift \
+    Sources/Renotch/Services/CodexUsageService.swift \
+    Sources/Renotch/Models/CodexStreamProjection.swift \
+    Sources/Renotch/Services/CodexIPCClient.swift \
+    Sources/Renotch/Services/CodexActivityService.swift \
     Sources/Renotch/State/AppModel.swift \
     Tests/AppModelFileDropTests.swift \
     -framework AppKit \

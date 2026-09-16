@@ -457,6 +457,7 @@ struct SmokeTests {
         persisted.notchAppearance = .liquidGlass
         persisted.glassBlurRadius = 24
         persisted.compactContent = .servers
+        persisted.codexShowUsage = false
         persisted.compactCornerRadius = 24
         persisted.compactContentBottomPadding = 6
         persisted.compactContentLeadingPadding = 48
@@ -465,6 +466,7 @@ struct SmokeTests {
         expect(store.load().resolvedAppearance == .liquidGlass, "appearance persistence")
         expect(store.load().resolvedGlassBlurRadius == 24, "glass blur persistence")
         expect(store.load().resolvedCompactContent == .servers, "compact content persistence")
+        expect(store.load().codexShowUsage == false, "usage visibility persistence")
         expect(store.load().resolvedCompactCornerRadius == 24, "compact corner radius persistence")
         expect(store.load().resolvedCompactContentLeadingPadding == 48, "compact content leading padding persistence")
         expect(store.load().resolvedCompactContentBottomPadding == 6, "compact content bottom padding persistence")
@@ -474,6 +476,10 @@ struct SmokeTests {
             with: JSONEncoder().encode(NotchSettings.default)
         ) as? [String: Any] ?? [:]
         legacyJSON.removeValue(forKey: "notchAppearance")
+        legacyJSON.removeValue(forKey: "codexEnabled")
+        legacyJSON.removeValue(forKey: "codexShowQuestions")
+        legacyJSON.removeValue(forKey: "codexShowUsage")
+        legacyJSON.removeValue(forKey: "codexCompletionSeconds")
         legacyJSON.removeValue(forKey: "glassBlurRadius")
         legacyJSON.removeValue(forKey: "compactContent")
         legacyJSON.removeValue(forKey: "compactCornerRadius")
@@ -490,6 +496,9 @@ struct SmokeTests {
             from: JSONSerialization.data(withJSONObject: legacyJSON)
         )
         expect(settingsWithoutAppearance.resolvedAppearance == .black, "legacy appearance default")
+        expect(settingsWithoutAppearance.codexEnabled != false, "Codex enabled for legacy settings")
+        expect(settingsWithoutAppearance.codexShowUsage != false, "usage enabled for legacy settings")
+        expect((settingsWithoutAppearance.codexCompletionSeconds ?? 120) == 120, "Codex legacy retention fallback")
         expect(settingsWithoutAppearance.resolvedGlassBlurRadius == 16, "legacy glass blur default")
         expect(settingsWithoutAppearance.resolvedCompactContent == .music, "legacy compact content default")
         expect(settingsWithoutAppearance.resolvedCompactCornerRadius == 11, "legacy compact corner radius default")

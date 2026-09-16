@@ -126,6 +126,9 @@ final class NotchWindowController: NSWindowController {
     }
 
     private func handleGlobalClick(_ event: NSEvent) {
+        #if DEBUG
+        if model.codex.isPreview { return }
+        #endif
         guard let panel = window, panel.isVisible, model.isPinned, model.mode != .focusTakeover else { return }
         let notchSize = model.currentSize
         let visibleNotchFrame = NSRect(
@@ -142,11 +145,11 @@ final class NotchWindowController: NSWindowController {
     private static func panelSize(for settings: NotchSettings) -> NSSize {
         let notchHeightOffset: CGFloat = settings.isHardwareNotchSafeActive ? 26 : 0
         return NSSize(
-            width: max(max(settings.compactWidth, settings.expandedWidth), NotchSettings.dragWidth)
+            width: max(max(settings.compactWidth, settings.expandedWidth), NotchSettings.codexExpandedWidth)
                 + NotchLayout.shadowHorizontalPadding * 2,
             height: max(
                 max(settings.compactHeight, settings.expandedHeight + notchHeightOffset),
-                max(NotchSettings.dragHeight, NotchSettings.codingExpandedHeight)
+                max(NotchSettings.dragHeight, NotchSettings.codexExpandedHeight)
             )
                 + NotchLayout.shadowBottomPadding
         )

@@ -43,7 +43,7 @@ struct AppModelFileDropTests {
         }
 
         func makeModel() -> AppModel {
-            let model = AppModel(defaults: makeDefaults())
+            let model = AppModel(defaults: makeDefaults(), connectCodex: false)
             model.successDismissalDelay = 0.05
             return model
         }

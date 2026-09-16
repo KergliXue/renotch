@@ -206,7 +206,27 @@ struct SettingsView: View {
     private var generalTabContent: some View {
         VStack(spacing: 16) {
             // Behavior Card
-            SettingCard(title: "Behavior", icon: "gearshape.fill", iconColor: .blue) {
+            SettingCard(title: "Codex 任务", icon: "bubble.left.and.bubble.right", iconColor: .cyan) {
+                SettingRow(title: "显示 Codex 任务状态", subtitle: "展示所有本机执行中的任务，待回答和待批准的任务优先") {
+                    Toggle("", isOn: Binding(get: { model.settings.codexEnabled != false }, set: { model.settings.codexEnabled = $0 })).toggleStyle(.switch)
+                }
+                SettingRow(title: "显示问题摘要", subtitle: "在任务卡片中显示待回答的问题与选项") {
+                    Toggle("", isOn: Binding(get: { model.settings.codexShowQuestions != false }, set: { model.settings.codexShowQuestions = $0 })).toggleStyle(.switch)
+                }
+                SettingRow(title: "显示剩余用量", subtitle: "显示账号剩余额度与重置时间，每分钟自动刷新") {
+                    Toggle("显示剩余用量", isOn: Binding(get: { model.settings.codexShowUsage != false }, set: { model.settings.codexShowUsage = $0 }))
+                        .toggleStyle(.switch).labelsHidden()
+                }
+                SettingRow(title: "保留已结束任务", subtitle: "已结束任务在面板中折叠展示，不挤占执行中任务的位置") {
+                    Picker("", selection: Binding(get: { model.settings.codexCompletionSeconds ?? 120 }, set: { model.settings.codexCompletionSeconds = $0 })) {
+                        Text("不保留").tag(0.0)
+                        Text("2 分钟").tag(120.0)
+                        Text("10 分钟").tag(600.0)
+                    }.frame(width: 110)
+                }
+            }
+
+            SettingCard(title: "操作方式", icon: "gearshape.fill", iconColor: .blue) {
                 VStack(spacing: 0) {
                     SettingRow(
                         title: "显示 Re:notch",
@@ -293,8 +313,8 @@ struct SettingsView: View {
             SettingCard(title: "显示器与时间", icon: "display", iconColor: .purple) {
                 VStack(spacing: 0) {
                     SettingRow(
-                        title: "Target monitor",
-                        subtitle: "Select display to attach the Re:notch overlay"
+                        title: "目标显示器",
+                        subtitle: "选择用于显示 Re:notch 的屏幕"
                     ) {
                         Picker("", selection: $model.settings.targetDisplayID) {
                             Text("主显示器").tag(nil as UInt32?)
@@ -686,7 +706,7 @@ struct SettingsView: View {
                             .font(.system(size: 14))
                             .foregroundStyle(.secondary)
 
-                        Text("No account, cloud sync, or background analytics. All your data stays strictly local on this Mac.")
+                        Text("无需额外账号，不进行后台分析。任务状态在本机处理；剩余用量通过已登录的 Codex 账号只读查询，不上传任务内容。")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineSpacing(2)

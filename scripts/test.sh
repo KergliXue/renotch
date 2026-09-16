@@ -26,3 +26,4 @@ swiftc \
 "$TEST_BINARY"
 
 "$SCRIPT_DIR/test-appmodel.sh"
+"$SCRIPT_DIR/test-codex.sh"
