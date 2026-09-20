@@ -62,9 +62,13 @@ struct DashboardView: View {
                                 : Color.white.opacity(0.06)
                         )
                     if let artwork = music.artwork {
-                        Image(nsImage: artwork)
-                            .resizable()
-                            .scaledToFill()
+                        Color.clear
+                            .overlay(
+                                Image(nsImage: artwork)
+                                    .resizable()
+                                    .scaledToFill()
+                            )
+                            .clipped()
                             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                     } else {
                         Image(systemName: music.isPlaying ? "waveform" : "music.note")

@@ -5,12 +5,16 @@ enum MusicSource: String, CaseIterable, Equatable, Sendable {
     case appleMusic
     case spotify
     case qqMusic
+    case neteaseMusic
+    case systemMedia
 
     var displayName: String {
         switch self {
         case .appleMusic: return "Apple Music"
         case .spotify: return "Spotify"
         case .qqMusic: return "QQ 音乐"
+        case .neteaseMusic: return "网易云音乐"
+        case .systemMedia: return "系统媒体"
         }
     }
 
@@ -19,6 +23,8 @@ enum MusicSource: String, CaseIterable, Equatable, Sendable {
         case .appleMusic: return "com.apple.Music"
         case .spotify: return "com.spotify.client"
         case .qqMusic: return "com.tencent.QQMusicMac"
+        case .neteaseMusic: return "com.netease.163music"
+        case .systemMedia: return ""
         }
     }
 
@@ -27,6 +33,8 @@ enum MusicSource: String, CaseIterable, Equatable, Sendable {
         case .appleMusic: return "Music"
         case .spotify: return "Spotify"
         case .qqMusic: return "QQMusic"
+        case .neteaseMusic: return "NeteaseMusic"
+        case .systemMedia: return ""
         }
     }
 
@@ -42,6 +50,15 @@ struct MusicTrack: Equatable, Sendable {
     let artist: String
     let album: String
     let duration: TimeInterval
+    var customSourceName: String? = nil
+    var customBundleID: String? = nil
+
+    var sourceDisplayName: String {
+        if let customSourceName, !customSourceName.isEmpty {
+            return customSourceName
+        }
+        return source.displayName
+    }
 
     var cacheKey: String {
         "\(source.rawValue):\(title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()):\(artist.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())"
@@ -98,8 +115,9 @@ final class MusicService: ObservableObject {
     @Published private(set) var activeSource: MusicSource = .appleMusic
     @Published private(set) var shuffleEnabled = false
     @Published private(set) var repeatMode: MusicRepeatMode = .off
-    @Published private(set) var qqMusicError: String?
-    private let qqMusic = QQMusicBridge()
+    @Published private(set) var mediaRemoteError: String?
+    var qqMusicError: String? { mediaRemoteError }
+    private let mediaRemote = MediaRemoteBridge()
 
     private static let artworkCache = NSCache<NSString, NSImage>()
     private var pollingTimer: Timer?
@@ -112,9 +130,9 @@ final class MusicService: ObservableObject {
     private var loadingTrackID: String?
 
     init() {
-        qqMusic.onSnapshot = { [weak self] snapshot in self?.applyQQMusic(snapshot) }
-        qqMusic.onError = { [weak self] error in self?.qqMusicError = error }
-        qqMusic.start()
+        mediaRemote.onSnapshot = { [weak self] snapshot in self?.applyMediaRemote(snapshot) }
+        mediaRemote.onError = { [weak self] error in self?.mediaRemoteError = error }
+        mediaRemote.start()
         refresh()
         setupDistributedObservers()
         updatePollingTimerState()
@@ -156,32 +174,32 @@ final class MusicService: ObservableObject {
     }
 
     func pause() {
-        qqMusic.stop()
+        mediaRemote.stop()
         pollingTimer?.invalidate()
         pollingTimer = nil
     }
 
     func resume() {
-        qqMusic.start()
+        mediaRemote.start()
         refresh()
         updatePollingTimerState()
     }
 
     var isPlaying: Bool { playbackState == .playing }
-    var supportsExtendedControls: Bool { activeSource != .qqMusic }
+    var supportsExtendedControls: Bool { activeSource == .appleMusic || activeSource == .spotify }
 
     func togglePlayback() {
-        if activeSource == .qqMusic { qqMusic.send(.toggle); return }
+        if !supportsExtendedControls { mediaRemote.send(.toggle); return }
         runCommand("playpause")
     }
 
     func previousTrack() {
-        if activeSource == .qqMusic { qqMusic.send(.previous); return }
+        if !supportsExtendedControls { mediaRemote.send(.previous); return }
         runCommand("previous track")
     }
 
     func nextTrack() {
-        if activeSource == .qqMusic { qqMusic.send(.next); return }
+        if !supportsExtendedControls { mediaRemote.send(.next); return }
         runCommand("next track")
     }
 
@@ -194,7 +212,7 @@ final class MusicService: ObservableObject {
             runCommand("set shuffle enabled to \(nextValue)")
         case .spotify:
             runCommand("set shuffling to \(nextValue)")
-        case .qqMusic: break
+        default: break
         }
     }
 
@@ -207,7 +225,7 @@ final class MusicService: ObservableObject {
             runCommand("set song repeat to \(nextMode.rawValue)")
         case .spotify:
             runCommand("set repeating to \(nextMode == .off ? "false" : "true")")
-        case .qqMusic: break
+        default: break
         }
     }
 
@@ -225,8 +243,9 @@ final class MusicService: ObservableObject {
     }
 
     func open(_ source: MusicSource) {
-        guard let applicationURL = NSWorkspace.shared.urlForApplication(
-            withBundleIdentifier: source.bundleIdentifier
+        let bundleID = (source == .systemMedia ? track?.customBundleID : nil) ?? source.bundleIdentifier
+        guard !bundleID.isEmpty, let applicationURL = NSWorkspace.shared.urlForApplication(
+            withBundleIdentifier: bundleID
         ) else { return }
         NSWorkspace.shared.openApplication(
             at: applicationURL,
@@ -243,7 +262,9 @@ final class MusicService: ObservableObject {
     }
 
     func isInstalled(_ source: MusicSource) -> Bool {
-        NSWorkspace.shared.urlForApplication(withBundleIdentifier: source.bundleIdentifier) != nil
+        let bundleID = (source == .systemMedia ? track?.customBundleID : nil) ?? source.bundleIdentifier
+        guard !bundleID.isEmpty else { return false }
+        return NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) != nil
     }
 
     func refresh() {
@@ -270,7 +291,7 @@ final class MusicService: ObservableObject {
     ) async -> [MusicSource: Result<String, AppleScriptFailure>] {
         var results: [MusicSource: Result<String, AppleScriptFailure>] = [:]
         for source in MusicSource.allCases {
-            guard source != .qqMusic else { continue }
+            guard source == .appleMusic || source == .spotify else { continue }
             results[source] = runningSources.contains(source)
                 ? execute(metadataScript(for: source))
                 : .success(MusicPlaybackState.notRunning.rawValue)
@@ -447,9 +468,8 @@ final class MusicService: ObservableObject {
             }
         }
 
-        if selectedSource == .qqMusic {
-            // QQ supplies artwork only on some system versions. Never search a
-            // different catalogue and present an unrelated cover as its artwork.
+        if selectedSource != .appleMusic && selectedSource != .spotify {
+            // Media bridge sources supply artwork directly if available.
             artwork = selectedSnapshot?.artworkData.flatMap(NSImage.init(data:))
         } else if let track {
             if trackChanged || (artwork == nil && loadingTrackID != track.id) {
@@ -460,12 +480,23 @@ final class MusicService: ObservableObject {
         }
     }
 
-    private func applyQQMusic(_ snapshot: MusicSnapshot?) {
-        let previous = snapshots[.qqMusic]
-        if snapshot?.playbackState == .playing && (previous?.playbackState != .playing || previous?.track?.id != snapshot?.track?.id) {
-            activationDates[.qqMusic] = Date()
+    private func applyMediaRemote(_ snapshot: MusicSnapshot?) {
+        guard let snapshot else {
+            for s in [MusicSource.qqMusic, .neteaseMusic, .systemMedia] {
+                snapshots[s] = nil
+            }
+            apply([:])
+            return
         }
-        snapshots[.qqMusic] = snapshot
+        let source = snapshot.source
+        let previous = snapshots[source]
+        if snapshot.playbackState == .playing && (previous?.playbackState != .playing || previous?.track?.id != snapshot.track?.id) {
+            activationDates[source] = Date()
+        }
+        for s in [MusicSource.qqMusic, .neteaseMusic, .systemMedia] where s != source {
+            snapshots[s] = nil
+        }
+        snapshots[source] = snapshot
         apply([:])
     }
 
@@ -512,7 +543,7 @@ final class MusicService: ObservableObject {
                 loadedImage = await Self.fetchAppleMusicArtwork()
             case .spotify:
                 loadedImage = await Self.fetchRemoteArtwork(url: remoteURL)
-            case .qqMusic:
+            default:
                 return
             }
 
@@ -620,8 +651,8 @@ final class MusicService: ObservableObject {
             return appleMusicMetadataScript
         case .spotify:
             return spotifyMetadataScript
-        case .qqMusic:
-            return "" // QQ uses the local media bridge, never AppleScript.
+        default:
+            return "" // Bridge sources use the local media bridge, never AppleScript.
         }
     }
 

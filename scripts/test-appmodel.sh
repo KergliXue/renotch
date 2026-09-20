@@ -16,7 +16,7 @@ swiftc \
     Sources/Renotch/Services/ShelfStore.swift \
     Sources/Renotch/Services/TodoStore.swift \
     Sources/Renotch/Services/MusicService.swift \
-    Sources/Renotch/Services/QQMusicBridge.swift \
+    Sources/Renotch/Services/MediaRemoteBridge.swift \
     Sources/Renotch/Services/BrowserActivityService.swift \
     Sources/Renotch/Services/DeveloperActivityService.swift \
     Sources/Renotch/Services/AppleCalendarService.swift \

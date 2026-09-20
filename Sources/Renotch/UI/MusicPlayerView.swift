@@ -22,6 +22,27 @@ struct MusicPlayerView: View {
                             .padding(4)
                             .background(.green, in: RoundedRectangle(cornerRadius: 5))
                             .padding(5)
+                    } else if music.activeSource == .neteaseMusic {
+                        Text("网易云")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(4)
+                            .background(Color(red: 0.88, green: 0.22, blue: 0.22), in: RoundedRectangle(cornerRadius: 5))
+                            .padding(5)
+                    } else if music.activeSource == .spotify {
+                        Text("Spotify")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundStyle(.black)
+                            .padding(4)
+                            .background(spotifyAccent, in: RoundedRectangle(cornerRadius: 5))
+                            .padding(5)
+                    } else if music.activeSource == .systemMedia {
+                        Text(music.track?.customSourceName ?? "媒体")
+                            .font(.system(size: 8, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(4)
+                            .background(Color.white.opacity(0.25), in: RoundedRectangle(cornerRadius: 5))
+                            .padding(5)
                     }
                 }
                 .animation(.easeOut(duration: 0.2), value: music.isPlaying)
@@ -45,7 +66,7 @@ struct MusicPlayerView: View {
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(.white)
                         .lineLimit(1)
-                    Text(([music.activeSource.displayName, metadata(for: track)]).filter { !$0.isEmpty }.joined(separator: " · "))
+                    Text(([track.customSourceName ?? music.activeSource.displayName, metadata(for: track)]).filter { !$0.isEmpty }.joined(separator: " · "))
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(Color.notchMuted)
                         .lineLimit(1)
@@ -183,14 +204,15 @@ struct MusicPlayerView: View {
                 }
                 .frame(width: 94)
                 } else {
-                    Button("打开 QQ 音乐") { music.open(.qqMusic) }
+                    let name = music.track?.customSourceName ?? music.activeSource.displayName
+                    Button("打开 \(name)") { music.open(music.activeSource) }
                         .font(.system(size: 10, weight: .medium))
                         .buttonStyle(.plain)
                         .foregroundStyle(sourceAccent)
-                        .help("在 QQ 音乐中调整音量、进度和播放模式")
+                        .help("在 \(name) 中调整音量、进度和播放模式")
                 }
             }
-            if music.activeSource == .qqMusic, let error = music.qqMusicError {
+            if music.activeSource != .appleMusic && music.activeSource != .spotify, let error = music.mediaRemoteError {
                 Text(error).font(.system(size: 9)).foregroundStyle(.orange).lineLimit(2)
             }
         }
@@ -207,7 +229,7 @@ struct MusicPlayerView: View {
             Text(
                 music.automationDenied
                     ? "请在“系统设置 → 隐私与安全性 → 自动化”中，允许 Re:notch 控制 \(music.activeSource.displayName)。"
-                    : (music.qqMusicError ?? "在 QQ 音乐、Apple Music 或 Spotify 中播放音乐后，这里会显示歌曲和播放控制。")
+                    : (music.qqMusicError ?? "在 QQ 音乐、网易云音乐、Apple Music 或 Spotify 中播放音乐后，这里会显示歌曲和播放控制。")
             )
             .font(.system(size: 10))
             .foregroundStyle(Color.notchMuted)
@@ -217,6 +239,7 @@ struct MusicPlayerView: View {
             HStack(spacing: 7) {
                 sourceButton(.appleMusic)
                 sourceButton(.qqMusic)
+                sourceButton(.neteaseMusic)
                 sourceButton(.spotify)
             }
         }
@@ -228,7 +251,7 @@ struct MusicPlayerView: View {
             music.open(source)
         } label: {
             HStack(spacing: 6) {
-                Image(systemName: source == .spotify ? "waveform.circle.fill" : "music.note")
+                Image(systemName: sourceIcon(source))
                 Text(source.displayName)
             }
             .font(.system(size: 10, weight: .semibold))
@@ -237,7 +260,7 @@ struct MusicPlayerView: View {
             .frame(height: 27)
             .background(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(source == .appleMusic ? Color.musicAccent : spotifyAccent)
+                    .fill(sourceColor(source))
             )
         }
         .buttonStyle(.plain)
@@ -245,6 +268,24 @@ struct MusicPlayerView: View {
         .opacity(music.isInstalled(source) ? 1 : 0.4)
         .help("打开 \(source.displayName)")
         .accessibilityLabel("打开 \(source.displayName)")
+    }
+
+    private func sourceIcon(_ source: MusicSource) -> String {
+        switch source {
+        case .spotify: return "waveform.circle.fill"
+        case .neteaseMusic: return "waveform"
+        default: return "music.note"
+        }
+    }
+
+    private func sourceColor(_ source: MusicSource) -> Color {
+        switch source {
+        case .appleMusic: return Color.musicAccent
+        case .spotify: return spotifyAccent
+        case .qqMusic: return qqMusicAccent
+        case .neteaseMusic: return neteaseAccent
+        case .systemMedia: return Color.musicAccent
+        }
     }
 
     private var activePosition: Double {
@@ -256,11 +297,19 @@ struct MusicPlayerView: View {
     }
 
     private var sourceAccent: Color {
-        music.activeSource == .appleMusic ? Color.musicAccent : spotifyAccent
+        sourceColor(music.activeSource)
     }
 
     private var spotifyAccent: Color {
         Color(red: 0.12, green: 0.78, blue: 0.36)
+    }
+
+    private var qqMusicAccent: Color {
+        Color(red: 0.18, green: 0.77, blue: 0.52)
+    }
+
+    private var neteaseAccent: Color {
+        Color(red: 0.88, green: 0.22, blue: 0.22)
     }
 
     private var repeatHelp: String {
@@ -319,20 +368,25 @@ struct AlbumArtworkView: View {
     let artwork: NSImage?
     var cornerRadius: CGFloat = 10
     var body: some View {
-        Group {
+        ZStack {
             if let artwork {
-                Image(nsImage: artwork)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
+                Color.clear
+                    .overlay(
+                        Image(nsImage: artwork)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    )
+                    .clipped()
             } else {
                 ZStack {
                     Color(red: 0.12, green: 0.12, blue: 0.14)
                     Image(systemName: "music.note")
-                        .font(.system(size: 18, weight: .medium))
+                        .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(Color.white.opacity(0.46))
                 }
             }
         }
+        .aspectRatio(1, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)

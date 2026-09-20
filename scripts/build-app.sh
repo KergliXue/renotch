@@ -45,19 +45,26 @@ BIN_DIR_X86="$(swift build -c "$BUILD_CONFIGURATION" --triple x86_64-apple-macos
 rm -rf "$APP_PATH"
 mkdir -p "$CONTENTS_PATH/MacOS" "$CONTENTS_PATH/Resources" "$CONTENTS_PATH/Frameworks"
 "$SCRIPT_DIR/build-music-bridge.sh" "$PROJECT_DIR/.build/music-bridge"
-cp "$PROJECT_DIR/.build/music-bridge/libQQMusicBridge.dylib" "$CONTENTS_PATH/Frameworks/"
-cp "$PROJECT_DIR/MediaBridge/qq-music-bridge.pl" "$CONTENTS_PATH/Resources/"
+cp "$PROJECT_DIR/.build/music-bridge/libMediaRemoteBridge.dylib" "$CONTENTS_PATH/Frameworks/"
+cp "$PROJECT_DIR/MediaBridge/media-remote-bridge.pl" "$CONTENTS_PATH/Resources/"
+ln -sf libMediaRemoteBridge.dylib "$CONTENTS_PATH/Frameworks/libQQMusicBridge.dylib"
+ln -sf media-remote-bridge.pl "$CONTENTS_PATH/Resources/qq-music-bridge.pl"
 
-# Create Universal binaries supporting both Apple Silicon and Intel Macs
-lipo -create \
-    "$BIN_DIR_ARM64/Renotch" \
-    "$BIN_DIR_X86/Renotch" \
-    -output "$CONTENTS_PATH/MacOS/Renotch"
+# Create Universal or Native binaries
+if [ "$BIN_DIR_ARM64" != "$BIN_DIR_X86" ] && [ -f "$BIN_DIR_ARM64/Renotch" ] && [ -f "$BIN_DIR_X86/Renotch" ]; then
+    lipo -create \
+        "$BIN_DIR_ARM64/Renotch" \
+        "$BIN_DIR_X86/Renotch" \
+        -output "$CONTENTS_PATH/MacOS/Renotch"
 
-lipo -create \
-    "$BIN_DIR_ARM64/RenotchBrowserBridge" \
-    "$BIN_DIR_X86/RenotchBrowserBridge" \
-    -output "$CONTENTS_PATH/MacOS/RenotchBrowserBridge"
+    lipo -create \
+        "$BIN_DIR_ARM64/RenotchBrowserBridge" \
+        "$BIN_DIR_X86/RenotchBrowserBridge" \
+        -output "$CONTENTS_PATH/MacOS/RenotchBrowserBridge"
+else
+    cp "$BIN_DIR_ARM64/Renotch" "$CONTENTS_PATH/MacOS/Renotch"
+    cp "$BIN_DIR_ARM64/RenotchBrowserBridge" "$CONTENTS_PATH/MacOS/RenotchBrowserBridge"
+fi
 
 # Bundle.module resources (menu bar icon, etc.). Placed in Contents/Resources:
 # codesign --deep rejects the plist-less SwiftPM bundle as nested code in

@@ -85,11 +85,12 @@ struct CompactMusicView: View {
     }
 
     private var subtitle: String {
+        let sourceName = music.track?.customSourceName ?? music.activeSource.displayName
         if let artist = music.track?.artist, !artist.isEmpty {
-            return "\(artist) · \(music.activeSource.displayName)"
+            return "\(artist) · \(sourceName)"
         }
         switch music.playbackState {
-        case .notRunning: return "QQ 音乐 / Apple Music / Spotify"
+        case .notRunning: return "QQ 音乐 / 网易云 / Apple Music / Spotify"
         case .stopped: return "未播放"
         case .paused: return "已暂停"
         case .playing: return "正在播放"

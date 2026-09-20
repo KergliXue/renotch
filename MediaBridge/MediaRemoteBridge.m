@@ -4,8 +4,7 @@
 
 // The bridge runs under the system Perl host: current macOS does not return
 // MediaRemote metadata to an ordinary ad-hoc signed app. No entitlements or
-// system settings are changed. Only QQ Music data crosses the local pipe.
-static NSString *const QQBundleID = @"com.tencent.QQMusicMac";
+// system settings are changed. Now Playing metadata crosses the local pipe.
 static void (*getPID)(dispatch_queue_t, void (^)(int));
 static void (*getInfo)(dispatch_queue_t, void (^)(CFDictionaryRef));
 static void (*getPlaying)(dispatch_queue_t, void (^)(Boolean));
@@ -24,8 +23,9 @@ static void emit(NSDictionary *object) {
     fflush(stdout);
 }
 
-static BOOL isQQ(int pid) {
-    return pid > 0 && [[NSRunningApplication runningApplicationWithProcessIdentifier:pid].bundleIdentifier isEqualToString:QQBundleID];
+static NSRunningApplication *mediaApp(int pid) {
+    if (pid <= 0) return nil;
+    return [NSRunningApplication runningApplicationWithProcessIdentifier:pid];
 }
 
 static NSString *textValue(NSDictionary *info, NSString *key) {
@@ -47,10 +47,12 @@ static void poll(void) {
     NSUInteger request = ++generation;
     getPID(dispatch_get_main_queue(), ^(int pid) {
         if (request != generation) return;
-        if (!isQQ(pid)) {
+        NSRunningApplication *app = mediaApp(pid);
+        NSString *bundleID = app.bundleIdentifier ?: @"";
+        if (pid <= 0 || bundleID.length == 0) {
             fetching = NO;
             lastArtworkKey = nil;
-            emit(@{@"kind": @"snapshot", @"bundleID": QQBundleID, @"available": @NO});
+            emit(@{@"kind": @"snapshot", @"bundleID": @"", @"available": @NO});
             return;
         }
         getInfo(dispatch_get_main_queue(), ^(CFDictionaryRef raw) {
@@ -62,16 +64,19 @@ static void poll(void) {
                 getPID(dispatch_get_main_queue(), ^(int currentPID) {
                     if (request != generation) return;
                     fetching = NO;
-                    if (currentPID != pid || !isQQ(currentPID)) { poll(); return; }
+                    NSRunningApplication *currentApp = mediaApp(currentPID);
+                    if (currentPID != pid || currentApp == nil) { poll(); return; }
+                    NSString *currentBundleID = currentApp.bundleIdentifier ?: bundleID;
+                    NSString *appName = currentApp.localizedName ?: @"";
                     NSString *title = textValue(info, @"kMRMediaRemoteNowPlayingInfoTitle");
                     if (!title.length) {
-                        emit(@{@"kind": @"snapshot", @"bundleID": QQBundleID, @"available": @NO});
+                        emit(@{@"kind": @"snapshot", @"bundleID": currentBundleID, @"appName": appName, @"available": @NO});
                         return;
                     }
                     double duration = numberValue(info, @"kMRMediaRemoteNowPlayingInfoDuration").doubleValue;
                     double elapsed = numberValue(info, @"kMRMediaRemoteNowPlayingInfoElapsedTime").doubleValue;
                     NSDate *timestamp = info[@"kMRMediaRemoteNowPlayingInfoTimestamp"];
-                    // The separate playing callback is authoritative; QQ can
+                    // The separate playing callback is authoritative; apps can
                     // retain playbackRate = 1 while paused.
                     if (playing && [timestamp isKindOfClass:NSDate.class]) {
                         double delta = -timestamp.timeIntervalSinceNow;
@@ -81,14 +86,12 @@ static void poll(void) {
                     NSString *album = textValue(info, @"kMRMediaRemoteNowPlayingInfoAlbum");
                     NSString *trackID = [NSString stringWithFormat:@"%@\x1f%@\x1f%@\x1f%.3f", title, artist, album, duration];
                     NSMutableDictionary *snapshot = [@{
-                        @"kind": @"snapshot", @"bundleID": QQBundleID, @"available": @YES,
-                        @"playing": @(playing != 0), @"title": title, @"artist": artist,
-                        @"album": album, @"trackID": trackID, @"duration": @(duration),
-                        @"position": @(MAX(0, MIN(elapsed, duration))), @"pid": @(pid)
+                        @"kind": @"snapshot", @"bundleID": currentBundleID, @"appName": appName,
+                        @"available": @YES, @"playing": @(playing != 0), @"title": title,
+                        @"artist": artist, @"album": album, @"trackID": trackID,
+                        @"duration": @(duration), @"position": @(MAX(0, MIN(elapsed, duration))),
+                        @"pid": @(pid)
                     } mutableCopy];
-                    // QQ reports zero or the last resume position when paused,
-                    // even though its own window retains the actual position.
-                    // Only running snapshots are a reliable position source.
                     snapshot[@"positionAvailable"] = @(playing != 0);
                     NSData *art = info[@"kMRMediaRemoteNowPlayingInfoArtworkData"];
                     NSString *artKey = [trackID stringByAppendingString:textValue(info, @"kMRMediaRemoteNowPlayingInfoArtworkIdentifier")];
@@ -108,12 +111,12 @@ static void command(NSString *line) {
     NSNumber *value = commands[line];
     if (!value) return;
     getPID(dispatch_get_main_queue(), ^(int pid) {
-        if (!isQQ(pid)) {
-            emit(@{@"kind": @"error", @"message": @"请先在 QQ 音乐中开始播放"});
+        if (pid <= 0) {
+            emit(@{@"kind": @"error", @"message": @"请先在媒体应用中开始播放"});
             return;
         }
         if (!sendCommand(value.intValue, NULL)) {
-            emit(@{@"kind": @"error", @"message": @"QQ 音乐暂未响应，请在应用中重试"});
+            emit(@{@"kind": @"error", @"message": @"媒体应用暂未响应，请在应用中重试"});
         }
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, 350 * NSEC_PER_MSEC), dispatch_get_main_queue(), ^{ poll(); });
     });
@@ -121,7 +124,7 @@ static void command(NSString *line) {
 
 // XSUB entrypoint: Perl passes its interpreter and CV; neither is inspected.
 // This function does not return to Perl, so no Perl ABI structures are needed.
-__attribute__((visibility("default"))) void renotch_qq_music_start(void *interpreter, void *cv) {
+__attribute__((visibility("default"))) void renotch_media_remote_start(void *interpreter, void *cv) {
     @autoreleasepool {
         signal(SIGPIPE, SIG_DFL);
         parentPID = getppid();
@@ -131,7 +134,7 @@ __attribute__((visibility("default"))) void renotch_qq_music_start(void *interpr
         getPlaying = dlsym(library, "MRMediaRemoteGetNowPlayingApplicationIsPlaying");
         sendCommand = dlsym(library, "MRMediaRemoteSendCommand");
         if (!library || !getPID || !getInfo || !getPlaying || !sendCommand) {
-            emit(@{@"kind": @"error", @"message": @"当前系统暂不支持 QQ 音乐联动"});
+            emit(@{@"kind": @"error", @"message": @"当前系统暂不支持媒体联动"});
             exit(1);
         }
         emit(@{@"kind": @"ready"});
@@ -151,4 +154,8 @@ __attribute__((visibility("default"))) void renotch_qq_music_start(void *interpr
         [[NSRunLoop mainRunLoop] run];
         exit(0);
     }
+}
+
+__attribute__((visibility("default"))) void renotch_qq_music_start(void *interpreter, void *cv) {
+    renotch_media_remote_start(interpreter, cv);
 }
